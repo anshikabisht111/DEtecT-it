@@ -1,0 +1,11 @@
+flask
+opencv-python
+pillow
+numpy
+torch
+torchvision
+timm
+piexif
+matplotlib
+scipy
+werkzeug

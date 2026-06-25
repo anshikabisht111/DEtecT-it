@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# VS Code
+.vscode/
+
+# Data
+*.sqlite3
+*.db
+detect_env/
+venv/
+models/*.pth
+static/uploads/*
+static/results/*
+.env
