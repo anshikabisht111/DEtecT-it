@@ -26,3 +26,8 @@ def run_ela(image_path, quality=90, amplify=20):
         "anomaly_score" : round(anomaly_score, 4),
         "suspicious"    : suspicious,
     }
+def save_ela_image(ela_image, output_path):
+    from pathlib import Path
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+    ela_image.save(str(output_path))
+    return str(output_path)

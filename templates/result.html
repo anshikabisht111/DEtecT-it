@@ -1,6 +1,62 @@
 {% extends "base.html" %}
-
+{% block title %}DEtecT-it — Results{% endblock %}
 {% block content %}
-<h2>Analysis Results</h2>
-<p>{{ result }}</p>
+
+<div class="result-page">
+  <div class="verdict-hero {% if results.verdict == 'DEEPFAKE' %}verdict-fake{% else %}verdict-real{% endif %}">
+    <div class="verdict-label">{{ results.verdict }}</div>
+    <div class="verdict-conf">{{ results.confidence }}% confidence</div>
+    <div class="verdict-file">{{ results.file }}</div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-box">
+      <label>Faces Detected</label>
+      <value>{{ results.faces_detected }}</value>
+    </div>
+    <div class="stat-box">
+      <label>ELA Suspicious</label>
+      <value>{{ '⚠ Yes' if results.ela.suspicious else '✓ No' }}</value>
+    </div>
+    <div class="stat-box">
+      <label>Metadata Risk</label>
+      <value class="risk-{{ results.metadata.risk_level }}">{{ results.metadata.risk_level | upper }}</value>
+    </div>
+    <div class="stat-box">
+      <label>Anomalies</label>
+      <value>{{ results.metadata.anomalies | length }}</value>
+    </div>
+  </div>
+
+  <div class="result-section">
+    <h2>ELA Analysis</h2>
+    <div class="ela-stats">
+      <div class="stat-box"><label>Mean Error</label><value>{{ results.ela.mean_error }}</value></div>
+      <div class="stat-box"><label>Anomaly Score</label><value>{{ results.ela.anomaly_score }}</value></div>
+      <div class="stat-box"><label>Suspicious</label><value>{{ 'Yes ⚠' if results.ela.suspicious else 'No ✓' }}</value></div>
+    </div>
+    <img src="{{ url_for('static', filename='results/' + results.session_id + '_ela.jpg') }}"
+         alt="ELA Visualization" class="ela-img"/>
+  </div>
+
+  <div class="result-section">
+    <h2>Metadata Analysis</h2>
+    <p class="meta-summary">{{ results.metadata.get('summary', '') }}</p>
+    {% if results.metadata.anomalies %}
+      <ul class="anomaly-list">
+        {% for a in results.metadata.anomalies %}
+          <li>⚠ {{ a }}</li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="ok-note">✓ No metadata anomalies detected.</p>
+    {% endif %}
+  </div>
+
+  <div class="report-cta">
+    <a href="{{ results.report_url }}" target="_blank" class="report-btn">View Full Forensic Report</a>
+    <a href="/" class="back-btn">Analyze Another</a>
+  </div>
+</div>
+
 {% endblock %}

@@ -1,15 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Detect-it</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}DEtecT-it{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
 </head>
 <body>
-    <header>
-        <h1>Detect-it</h1>
-    </header>
-    <main>
-        {% block content %}{% endblock %}
-    </main>
+  <nav class="navbar">
+    <a href="/" class="nav-brand">
+      <span class="brand-icon">⬡</span> DEtecT<span class="brand-accent">-it</span>
+    </a>
+    <div class="nav-links">
+      <a href="/">Analyze</a>
+      <a href="https://github.com/anshikabisht111/DEtecT-it" target="_blank">GitHub</a>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for msg in messages %}
+          <div class="flash-msg">⚠ {{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer">
+    DEtecT-it &nbsp;|&nbsp; Deepfake Forensic Analysis &nbsp;|&nbsp; MCA Cyber Security, LPU
+  </footer>
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>

@@ -1,9 +1,83 @@
 {% extends "base.html" %}
-
+{% block title %}DEtecT-it — Deepfake Detection{% endblock %}
 {% block content %}
-<h2>Upload image for analysis</h2>
-<form method="post" enctype="multipart/form-data">
-    <input type="file" name="image">
-    <button type="submit">Analyze</button>
-</form>
+
+<div class="hero">
+  <h1 class="hero-title">DEtecT<span class="accent">-it</span></h1>
+  <p class="hero-sub">AI-Powered Deepfake Detection & Forensic Analysis</p>
+</div>
+
+<div class="upload-card">
+  <form action="/analyze" method="POST" enctype="multipart/form-data" id="upload-form">
+    <div class="drop-zone" id="drop-zone">
+      <div class="drop-icon">⬆</div>
+      <p class="drop-text">Drop image here</p>
+      <p class="drop-sub">JPG, PNG, MP4 &nbsp;·&nbsp; Max 50MB</p>
+      <input type="file" name="file" id="file-input" accept="image/*,video/*" hidden/>
+      <button type="button" class="browse-btn" onclick="document.getElementById('file-input').click()">
+        Browse File
+      </button>
+      <div class="image-preview-wrap" id="img-preview-wrap">
+  <p class="preview-label">LOADED_FILE</p>
+  <img id="preview-img" src="" alt="preview"/>
+    </div>
+    <div class="file-preview" id="file-preview" style="display:none;">
+      <span class="file-name" id="file-name"></span>
+      <button type="submit" class="analyze-btn">Analyze</button>
+    </div>
+  </form>
+</div>
+
+<div class="features-row">
+  <div class="feature-card">
+    <div class="feat-icon">🧠</div>
+    <div class="feat-title">CNN Detection</div>
+    <div class="feat-sub">EfficientNet-B4 on FaceForensics++</div>
+  </div>
+  <div class="feature-card">
+    <div class="feat-icon">🔬</div>
+    <div class="feat-title">ELA Analysis</div>
+    <div class="feat-sub">Compression artifact detection</div>
+  </div>
+  <div class="feature-card">
+    <div class="feat-icon">🗂</div>
+    <div class="feat-title">EXIF Forensics</div>
+    <div class="feat-sub">Metadata anomaly detection</div>
+  </div>
+  <div class="feature-card">
+    <div class="feat-icon">📊</div>
+    <div class="feat-title">Forensic Report</div>
+    <div class="feat-sub">Downloadable HTML report</div>
+  </div>
+</div>
+<div class="loading-overlay" id="loading-overlay">
+  <div class="loading-title">ANALYZING TARGET...</div>
+  <div class="progress-steps">
+    <div class="progress-step active" id="step-extract">
+      <span class="step-icon spin">⟳</span> Extracting faces...
+    </div>
+    <div class="progress-step" id="step-model">
+      <span class="step-icon">○</span> Running AI model...
+    </div>
+    <div class="progress-step" id="step-ela">
+      <span class="step-icon">○</span> ELA analysis...
+    </div>
+    <div class="progress-step" id="step-meta">
+      <span class="step-icon">○</span> Metadata forensics...
+    </div>
+    <div class="progress-step" id="step-report">
+      <span class="step-icon">○</span> Generating report...
+    </div>
+  </div>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-label">
+      <span>PROGRESS</span>
+      <span id="progress-text">0%</span>
+    </div>
+    <div class="progress-bar-track">
+      <div class="progress-bar-fill" id="progress-fill"></div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
