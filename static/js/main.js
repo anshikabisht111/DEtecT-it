@@ -164,7 +164,7 @@ function animateCounters() {
 }
 
 // ── Circular confidence gauge ────────────────────────────────────
-function drawGauge(confidence, isReal) {
+function drawGauge(confidence, verdict) {
   const canvas = document.getElementById('confidence-gauge');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
@@ -173,7 +173,7 @@ function drawGauge(confidence, isReal) {
   const radius = 80;
   const startAngle = Math.PI * 0.75;
   const endAngle   = Math.PI * 2.25;
-  const color = isReal ? '#34d399' : '#f87171';
+  const color = verdict === 'REAL' ? '#34d399' : (verdict === 'INCONCLUSIVE' ? '#f0d060' : '#f87171');
   let current = 0;
 
   function draw(val) {
@@ -219,8 +219,8 @@ window.addEventListener('load', () => {
   animateCounters();
   const gauge = document.getElementById('confidence-gauge');
   if (gauge) {
-    const conf   = parseFloat(gauge.dataset.confidence);
-    const isReal = gauge.dataset.verdict === 'REAL';
-    drawGauge(conf, isReal);
+    const conf    = parseFloat(gauge.dataset.confidence);
+    const verdict = gauge.dataset.verdict;
+    drawGauge(conf, verdict);
   }
 });

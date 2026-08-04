@@ -5,7 +5,7 @@ from datetime import datetime
 def generate_report(image_filename, verdict, confidence, ela_results, metadata_results, heatmap_path=None, ela_image_path=None, output_path=None):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     case_id = datetime.now().strftime("DT-%Y%m%d-%H%M%S")
-    verdict_color = "#2ecc71" if verdict == "REAL" else "#e74c3c"
+    verdict_color = "#2ecc71" if verdict == "REAL" else ("#f0c040" if verdict == "INCONCLUSIVE" else "#e74c3c")
 
     anomalies_html = ""
     for a in metadata_results.get("anomalies", []):
@@ -14,6 +14,7 @@ def generate_report(image_filename, verdict, confidence, ela_results, metadata_r
         anomalies_html = '<li style="color:#2ecc71;">✓ No anomalies detected.</li>'
 
     ela_img_html = f'<img src="../static/results/{Path(ela_image_path).name}" style="width:100%;border-radius:6px;"/>' if ela_image_path and Path(ela_image_path).exists() else '<p style="color:#888;">Not available.</p>'
+    heatmap_img_html = f'<img src="../static/results/{Path(heatmap_path).name}" style="width:100%;border-radius:6px;"/>' if heatmap_path and Path(heatmap_path).exists() else '<p style="color:#888;">Not available.</p>'
 
     html = f"""<!DOCTYPE html>
 <html><head><meta charset="UTF-8"/>
@@ -44,13 +45,18 @@ td:first-child{{color:#e0e0f0;}}
   {ela_img_html}
 </div>
 <div class="card">
+  <h2>Grad-CAM Heatmap</h2>
+  <p style="color:#888;font-size:.85rem;">Regions the model weighted most heavily for its verdict.</p>
+  {heatmap_img_html}
+</div>
+<div class="card">
   <h2>Metadata Analysis</h2>
   <p style="color:#888;font-size:.85rem;">{metadata_results.get('summary','')}</p>
   <ul style="list-style:none;padding:0;">{anomalies_html}</ul>
 </div>
 <div class="card">
   <h2>Methodology</h2>
-  <p style="color:#888;font-size:.85rem;line-height:1.7;">EfficientNet-B4 pretrained on FaceForensics++ for CNN classification. Error Level Analysis for compression artifact detection. EXIF metadata forensics for authenticity verification.</p>
+  <p style="color:#888;font-size:.85rem;line-height:1.7;">Xception backbone, using pretrained weights from DeepfakeBench (Yan et al., NeurIPS 2023), trained on all four FaceForensics++ manipulation methods (DeepFakes, Face2Face, FaceSwap, NeuralTextures; c23 compression). CC BY-NC 4.0 licensed, used here for non-commercial academic purposes. Error Level Analysis for compression artifact detection. EXIF metadata forensics for authenticity verification. Grad-CAM visualizes which regions influenced the CNN's output. Known limitation: trained on the FaceForensics++ family of manipulation methods — deepfakes made with unrelated/newer generation tools may not be reliably detected, which reflects an open research problem (cross-dataset generalization) in this field, not a defect specific to this implementation.</p>
 </div>
 <div class="footer">DEtecT-it v1.0 | Anshika | MCA Cyber Security, LPU | For investigative use only.</div>
 </body></html>"""

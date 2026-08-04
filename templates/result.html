@@ -4,14 +4,21 @@
 
 <div class="result-page">
 
-  <div class="verdict-hero {% if results.verdict == 'DEEPFAKE' %}verdict-fake{% else %}verdict-real{% endif %}">
+  <div class="verdict-hero {% if results.verdict == 'DEEPFAKE' %}verdict-fake{% elif results.verdict == 'INCONCLUSIVE' %}verdict-inconclusive{% else %}verdict-real{% endif %}"
+       {% if results.verdict == 'INCONCLUSIVE' %}style="background:#1a1a12;border-color:#6b5f10;"{% endif %}>
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
       <div>
-        <div class="verdict-badge">
-          {% if results.verdict == 'DEEPFAKE' %}⚠ MANIPULATED MEDIA{% else %}✓ AUTHENTIC MEDIA{% endif %}
+        <div class="verdict-badge" {% if results.verdict == 'INCONCLUSIVE' %}style="background:#4d4310;color:#f0d060;"{% endif %}>
+          {% if results.verdict == 'DEEPFAKE' %}⚠ MANIPULATED MEDIA{% elif results.verdict == 'INCONCLUSIVE' %}? LOW CONFIDENCE{% else %}✓ AUTHENTIC MEDIA{% endif %}
         </div>
-        <div class="verdict-label">{{ results.verdict }}</div>
-        <div class="verdict-conf">Analysis complete</div>
+        <div class="verdict-label" {% if results.verdict == 'INCONCLUSIVE' %}style="color:#f0d060;"{% endif %}>{{ results.verdict }}</div>
+        <div class="verdict-conf">
+          {% if results.verdict == 'INCONCLUSIVE' %}
+            Model confidence too low for a reliable verdict — manual review recommended
+          {% else %}
+            Analysis complete
+          {% endif %}
+        </div>
         <div class="verdict-file">{{ results.file }}</div>
       </div>
       <canvas id="confidence-gauge" width="220" height="160"
@@ -19,6 +26,21 @@
         data-verdict="{{ results.verdict }}">
       </canvas>
     </div>
+  </div>
+
+  {% if results.signal_conflict %}
+  <div class="conflict-notice" style="background:#2a1414;border:1px solid #7a2828;border-radius:10px;padding:1rem 1.2rem;margin:1rem 0;font-size:.85rem;color:#f0a0a0;line-height:1.6;">
+    🔍 <strong>Signals disagree:</strong> {{ results.signal_conflict }} Recommend manual review before treating this as authentic.
+  </div>
+  {% endif %}
+
+  <div class="scope-notice" style="background:#241c0a;border:1px solid #6b5010;border-radius:10px;padding:1rem 1.2rem;margin:1rem 0;font-size:.85rem;color:#e0c070;line-height:1.6;">
+    ⚠ <strong>Detector scope:</strong> This model is trained to detect face-reenactment/face-swap
+    style deepfakes across the four FaceForensics++ manipulation methods (DeepFakes, Face2Face,
+    FaceSwap, NeuralTextures). It is <strong>not</strong> trained
+    to detect fully AI-generated synthetic images (e.g. Midjourney, DALL·E, Stable Diffusion outputs).
+    A "REAL" verdict means no reenactment-style manipulation was detected in this scope — it does
+    not confirm the image is authentic or human-created.
   </div>
 
   <div class="stats-row">
@@ -50,6 +72,15 @@
     <img src="{{ url_for('static', filename='results/' + results.session_id + '_ela.jpg') }}"
          alt="ELA Visualization" class="ela-img"/>
   </div>
+
+  {% if results.heatmap_url %}
+  <div class="result-section">
+    <h2>Grad-CAM Heatmap</h2>
+    <p class="meta-summary">Highlights the image regions the model weighted most heavily for its verdict.</p>
+    <img src="{{ url_for('static', filename='results/' + results.session_id + '_heatmap.jpg') }}"
+         alt="Grad-CAM Heatmap" class="ela-img"/>
+  </div>
+  {% endif %}
 
   <div class="result-section">
     <h2>Metadata Analysis</h2>

@@ -1,5 +1,15 @@
-import torch
+"""
+utils/heatmap.py — Grad-CAM visualization.
+
+Target layer is `bn4` — the last conv-based feature layer before pooling in
+the DeepfakeBench Xception architecture (model_loader.py). Note: this
+model's forward() returns a TUPLE (logits, features), not just logits —
+GradCAM.generate() unpacks that accordingly.
+"""
+
+import cv2
 import numpy as np
+import torch
 import matplotlib.pyplot as plt
 from PIL import Image
 
@@ -7,66 +17,71 @@ from PIL import Image
 class GradCAM:
     def __init__(self, model):
         self.model = model
-        self.gradients = None
         self.activations = None
 
         def save_activation(module, input, output):
-            self.activations = output.detach()
+            # NOTE: do NOT detach here — we need this tensor to stay attached
+            # to the autograd graph so we can compute gradients w.r.t. it
+            # directly via torch.autograd.grad(). A full_backward_hook was
+            # tried first but conflicts with this model's inplace ReLU
+            # (shared `self.relu` module used elsewhere in forward) —
+            # PyTorch raises "BackwardHookFunction output modified inplace".
+            # Using autograd.grad() sidesteps that entirely.
+            self.activations = output
 
-        def save_gradient(module, grad_input, grad_output):
-            self.gradients = grad_output[0].detach()
-
-        for name, module in model.backbone.named_modules():
-            target = module
-
+        target = model.bn4
         target.register_forward_hook(save_activation)
-        target.register_full_backward_hook(save_gradient)
 
-    def generate(self, input_tensor):
+    def generate(self, input_tensor, class_idx=1):
+        """class_idx=1 -> fake class (real=0, fake=1 convention)."""
         self.model.eval()
-        input_tensor = input_tensor.requires_grad_(True)
 
-        logits = self.model(input_tensor)
-        score = logits[0, 1]
+        logits, _ = self.model(input_tensor)  # this model returns (logits, features)
+        score = logits[0, class_idx]
 
-        self.model.zero_grad()
-        score.backward()
+        grads = torch.autograd.grad(score, self.activations, retain_graph=False)[0]
+        activations = self.activations.detach()[0]  # (C, H, W)
+        gradients = grads.detach()[0]                # (C, H, W)
 
-        pooled_grads = self.gradients.mean(dim=[0, 2, 3])
-        activation = self.activations[0]
+        weights = gradients.mean(dim=(1, 2))  # (C,)
+        cam = torch.zeros(activations.shape[1:], dtype=torch.float32)
+        for i, w in enumerate(weights):
+            cam += w * activations[i]
 
-        for i, w in enumerate(pooled_grads):
-            activation[i] *= w
-
-        cam = activation.mean(dim=0).cpu().numpy()
-        cam = np.maximum(cam, 0)
+        cam = torch.relu(cam)
+        cam = cam - cam.min()
         if cam.max() > 0:
-            cam /= cam.max()
+            cam = cam / cam.max()
 
-        return cam
+        return cam.cpu().numpy()
 
 
-def save_heatmap(original_image, cam, output_path, verdict=None, confidence=None):
-    from PIL import Image as PILImage
-    import matplotlib.cm as cm
+def save_heatmap(original_image, cam, output_path, verdict="", confidence=None):
+    """
+    original_image: PIL Image (pre-normalization, as originally loaded)
+    cam: 2D numpy array from GradCAM.generate(), values in [0,1]
+    """
+    orig_np = np.array(original_image.convert("RGB"))
+    h, w = orig_np.shape[:2]
 
-    w, h = original_image.size
-    cam_img = Image.fromarray(np.uint8(255 * cam)).resize((w, h), Image.LANCZOS)
-    heatmap = np.uint8(cm.jet(np.array(cam_img) / 255.0)[:, :, :3] * 255)
-    overlay = Image.blend(original_image.convert("RGB"), Image.fromarray(heatmap), alpha=0.5)
+    cam_resized = cv2.resize(cam, (w, h))
+    heatmap = cv2.applyColorMap(np.uint8(255 * cam_resized), cv2.COLORMAP_JET)
+    heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
+
+    overlay = (0.5 * orig_np + 0.5 * heatmap).astype(np.uint8)
 
     fig, axes = plt.subplots(1, 2, figsize=(10, 5))
-    axes[0].imshow(original_image)
+    axes[0].imshow(orig_np)
     axes[0].set_title("Original")
     axes[0].axis("off")
-    axes[1].imshow(overlay)
+
     title = "Grad-CAM"
-    if verdict and confidence:
-        title += f"\n{verdict} ({confidence:.1f}%)"
+    if verdict:
+        title += f"\n{verdict}" + (f" ({confidence}%)" if confidence is not None else "")
+    axes[1].imshow(overlay)
     axes[1].set_title(title)
     axes[1].axis("off")
 
     plt.tight_layout()
-    plt.savefig(output_path, dpi=150, bbox_inches="tight")
-    plt.close()
-    return output_path
+    plt.savefig(output_path, dpi=100, bbox_inches="tight")
+    plt.close(fig)
