@@ -2,10 +2,27 @@ from pathlib import Path
 from datetime import datetime
 
 
-def generate_report(image_filename, verdict, confidence, ela_results, metadata_results, heatmap_path=None, ela_image_path=None, output_path=None):
+def generate_report(image_filename, verdict, confidence, ela_results, metadata_results, heatmap_path=None, ela_image_path=None, output_path=None, confidence_tier=None, signal_conflict=None):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     case_id = datetime.now().strftime("DT-%Y%m%d-%H%M%S")
     verdict_color = "#2ecc71" if verdict == "REAL" else ("#f0c040" if verdict == "INCONCLUSIVE" else "#e74c3c")
+
+    # Tier note: the standalone report can be read without ever seeing the
+    # web results page, so it needs to carry the same "how sure is the
+    # model, really" caveat that the page shows — otherwise a low-confidence
+    # verdict reads as a confident one.
+    if verdict == "INCONCLUSIVE" or confidence_tier == "low":
+        tier_note = '<p style="color:#f0c040;margin-top:.6rem;font-size:.85rem;">⚠ Model confidence too low for a reliable verdict — manual review recommended.</p>'
+    elif confidence_tier == "moderate":
+        tier_note = '<p style="color:#e0c070;margin-top:.6rem;font-size:.85rem;">Moderate confidence — corroborate with the ELA and metadata findings below before relying on this verdict alone.</p>'
+    elif confidence_tier == "high":
+        tier_note = '<p style="color:#888;margin-top:.6rem;font-size:.85rem;">High confidence verdict.</p>'
+    else:
+        tier_note = ""
+
+    conflict_html = ""
+    if signal_conflict:
+        conflict_html = f'<p style="color:#f0a0a0;margin-top:.6rem;font-size:.85rem;">🔍 <strong>Signals disagree:</strong> {signal_conflict} Recommend manual review before treating this as authentic.</p>'
 
     anomalies_html = ""
     for a in metadata_results.get("anomalies", []):
@@ -37,6 +54,8 @@ td:first-child{{color:#e0e0f0;}}
   <div class="verdict">{verdict}</div>
   <p style="color:#888;margin-top:.3rem;">Confidence: {confidence}%</p>
   <div class="bar"><div class="bar-fill"></div></div>
+  {tier_note}
+  {conflict_html}
   <p style="color:#888;margin-top:.8rem;">File: {image_filename} | Case: {case_id} | {timestamp}</p>
 </div>
 <div class="card">

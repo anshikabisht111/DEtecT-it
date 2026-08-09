@@ -516,6 +516,23 @@ body::after {
 }
 .back-btn:hover { border-color: var(--border-bright); color: var(--text); }
 
+.download-btn {
+  padding: .7rem 1.5rem;
+  background: transparent;
+  border: 1px solid rgba(168,85,247,0.6);
+  color: #c084fc;
+  text-decoration: none;
+  border-radius: 8px;
+  font-size: .85rem;
+  font-weight: 600;
+  transition: all .2s;
+}
+.download-btn:hover {
+  background: rgba(168,85,247,0.1);
+  border-color: rgba(168,85,247,0.9);
+  transform: translateY(-1px);
+}
+
 /* Footer */
 .footer {
   text-align: center;

@@ -3,7 +3,7 @@ import uuid
 import torch
 import numpy as np
 from pathlib import Path
-from flask import Flask, request, render_template, redirect, url_for, flash, jsonify
+from flask import Flask, request, render_template, redirect, url_for, flash, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
 from PIL import Image
 
@@ -138,6 +138,8 @@ def analyze():
         heatmap_path=str(heatmap_path) if heatmap_path else None,
         ela_image_path=str(ela_path),
         output_path=str(report_path),
+        confidence_tier=confidence_tier,
+        signal_conflict=signal_conflict,
     )
 
     results = {
@@ -159,6 +161,12 @@ def analyze():
 @app.route("/results/<filename>")
 def serve_result(filename):
     return app.send_static_file(f"results/{filename}")
+
+@app.route("/download/<filename>")
+def download_result(filename):
+    # as_attachment=True sets Content-Disposition: attachment, so the
+    # browser downloads the file instead of opening it inline.
+    return send_from_directory(RESULTS_FOLDER, filename, as_attachment=True)
 
 
 if __name__ == "__main__":
