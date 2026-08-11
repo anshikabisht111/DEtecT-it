@@ -13,6 +13,7 @@ from utils.ela_analysis import run_ela, save_ela_image
 from utils.metadata_extractor import extract_metadata
 from utils.report_generator import generate_report
 from utils.heatmap import GradCAM, save_heatmap
+from utils.url_analyzer import fetch_and_extract_image
 
 UPLOAD_FOLDER = Path("static/uploads")
 RESULTS_FOLDER = Path("static/results")
@@ -46,27 +47,14 @@ def run_inference(face):
     return verdict, confidence
 
 
-@app.route("/")
-def index():
-    return render_template("index.html")
-
-
-@app.route("/analyze", methods=["POST"])
-def analyze():
-    if "file" not in request.files:
-        flash("No file uploaded.")
-        return redirect(url_for("index"))
-
-    file = request.files["file"]
-    if not allowed(file.filename):
-        flash("Unsupported file type.")
-        return redirect(url_for("index"))
-
-    session_id = str(uuid.uuid4())[:8]
-    filename = secure_filename(file.filename)
-    save_path = UPLOAD_FOLDER / f"{session_id}_{filename}"
-    file.save(str(save_path))
-
+def process_image(save_path, filename, session_id):
+    """
+    Core analysis pipeline — runs face detection, CNN inference, ELA,
+    metadata forensics, Grad-CAM, and report generation on a local image
+    file. Shared by both /analyze (direct upload) and /analyze-url
+    (fetched from a link), so there's one source of truth for detection
+    logic regardless of where the image came from.
+    """
     faces = extract_faces_from_image(str(save_path))
     verdicts, confidences = [], []
     for face in faces:
@@ -75,22 +63,18 @@ def analyze():
         confidences.append(c)
 
     raw_verdict = "DEEPFAKE" if verdicts.count("DEEPFAKE") >= verdicts.count("REAL") else "REAL"
-    confidence = round(float(np.mean(confidences)), 2)
+    confidence = round(float(np.mean(confidences)), 2) if confidences else 0.0
 
-    # Compute ELA + metadata BEFORE the verdict tier, so we can cross-check
-    # the CNN's verdict against other independent signals.
     ela_data = run_ela(str(save_path))
     ela_path = RESULTS_FOLDER / f"{session_id}_ela.jpg"
     save_ela_image(ela_data["ela_image"], str(ela_path))
 
     meta = extract_metadata(str(save_path))
 
-    # Confidence-tier logic: don't show a confident REAL/DEEPFAKE badge when
-    # the model itself is barely more sure than a coin flip. confidence is
-    # always >= 50 (it's max(fake_prob, real_prob)*100), so <60 means the
-    # model's top class barely edged out the other — that's not a reliable
-    # verdict and shouldn't be presented as one.
-    if confidence < 60:
+    if not confidences:
+        verdict = "INCONCLUSIVE"
+        confidence_tier = "low"
+    elif confidence < 60:
         verdict = "INCONCLUSIVE"
         confidence_tier = "low"
     elif confidence < 80:
@@ -100,13 +84,6 @@ def analyze():
         verdict = raw_verdict
         confidence_tier = "high"
 
-    # Signal-conflict check: only escalate on SPECIFIC anomalies (ELA flagged
-    # suspicious, or metadata found an actual editing-software signature),
-    # not the generic "no EXIF found" medium-risk flag — that fires on
-    # nearly every screenshot/re-shared image regardless of authenticity,
-    # so using it here would make the tool cry wolf on completely normal
-    # screenshots. Only metadata's "high" tier (specific software signature)
-    # counts as a real corroborating anomaly.
     signal_conflict = None
     if verdict == "REAL" and confidence_tier in ("moderate", "high"):
         if ela_data.get("suspicious"):
@@ -114,7 +91,6 @@ def analyze():
         elif meta.get("risk_level") == "high":
             signal_conflict = "Metadata found a specific editing-software signature that doesn't match the CNN's REAL verdict."
 
-    # Grad-CAM heatmap on the most-confident detected face
     heatmap_path = None
     if faces:
         top_idx = int(np.argmax(confidences))
@@ -142,7 +118,7 @@ def analyze():
         signal_conflict=signal_conflict,
     )
 
-    results = {
+    return {
         "session_id": session_id,
         "file": filename,
         "verdict": verdict,
@@ -155,6 +131,53 @@ def analyze():
         "heatmap_url": f"/results/{session_id}_heatmap.jpg" if heatmap_path else None,
         "report_url": f"/results/{session_id}_report.html",
     }
+
+
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+
+@app.route("/analyze", methods=["POST"])
+def analyze():
+    if "file" not in request.files:
+        flash("No file uploaded.")
+        return redirect(url_for("index"))
+
+    file = request.files["file"]
+    if not allowed(file.filename):
+        flash("Unsupported file type.")
+        return redirect(url_for("index"))
+
+    session_id = str(uuid.uuid4())[:8]
+    filename = secure_filename(file.filename)
+    save_path = UPLOAD_FOLDER / f"{session_id}_{filename}"
+    file.save(str(save_path))
+
+    results = process_image(save_path, filename, session_id)
+    return render_template("result.html", results=results)
+
+
+@app.route("/analyze-url", methods=["GET", "POST"])
+def analyze_url_route():
+    if request.method == "GET":
+        return render_template("url_analysis.html")
+
+    url = request.form.get("url", "").strip()
+    if not url:
+        return render_template("url_analysis.html", error="Please enter a URL.")
+
+    session_id = str(uuid.uuid4())[:8]
+    local_path, filename, error = fetch_and_extract_image(url, UPLOAD_FOLDER)
+
+    if error:
+        return render_template("url_analysis.html", error=error)
+
+    # rename to include session_id, matching the direct-upload naming convention
+    final_path = UPLOAD_FOLDER / f"{session_id}_{filename}"
+    os.rename(local_path, final_path)
+
+    results = process_image(final_path, filename, session_id)
     return render_template("result.html", results=results)
 
 

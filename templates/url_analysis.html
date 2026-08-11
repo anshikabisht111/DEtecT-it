@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}DEtecT-it — URL Analysis{% endblock %}
+{% block content %}
+
+<div class="hero">
+  <h1 class="hero-title">DEtecT<span class="accent">-it</span></h1>
+  <p class="hero-sub">Paste a URL — fetch the image and run it through the same forensic pipeline</p>
+</div>
+
+<div class="upload-card">
+  {% if error %}
+  <p style="color:#f0a0a0;background:#2a1414;border:1px solid #7a2828;border-radius:8px;padding:.7rem 1rem;margin-bottom:1rem;font-size:.85rem;">
+    {{ error }}
+  </p>
+  {% endif %}
+
+  <form action="/analyze-url" method="POST">
+    <div class="drop-zone" style="cursor:default;">
+      <div class="drop-icon">🔗</div>
+      <p class="drop-text">Paste an image URL or a webpage link</p>
+      <p class="drop-sub">We'll fetch the media and analyze it — same as a direct upload</p>
+      <input type="text" name="url" placeholder="https://example.com/image.jpg"
+             style="width:100%;max-width:480px;margin-top:1rem;padding:.7rem 1rem;border-radius:8px;
+                    background:#101010;border:1px solid #333;color:#eee;font-size:.9rem;" required/>
+      <br/>
+      <button type="submit" class="analyze-btn" style="margin-top:1rem;">Fetch &amp; Analyze</button>
+    </div>
+  </form>
+</div>
+
+<div class="features-row">
+  <div class="feature-card">
+    <div class="feat-icon">🌐</div>
+    <div class="feat-title">Auto-fetch</div>
+    <div class="feat-sub">Pulls the image directly from the page</div>
+  </div>
+  <div class="feature-card">
+    <div class="feat-icon">🔬</div>
+    <div class="feat-title">Same pipeline</div>
+    <div class="feat-sub">CNN + ELA + metadata + Grad-CAM</div>
+  </div>
+  <div class="feature-card">
+    <div class="feat-icon">🛡</div>
+    <div class="feat-title">SSRF-guarded</div>
+    <div class="feat-sub">Blocks private/internal network targets</div>
+  </div>
+</div>
+
+{% endblock %}

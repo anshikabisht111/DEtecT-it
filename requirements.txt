@@ -8,3 +8,7 @@ piexif
 matplotlib
 scipy
 werkzeug
+requests
+beautifulsoup4
+python-whois
+validators
