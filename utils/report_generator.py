@@ -2,7 +2,7 @@ from pathlib import Path
 from datetime import datetime
 
 
-def generate_report(image_filename, verdict, confidence, ela_results, metadata_results, heatmap_path=None, ela_image_path=None, output_path=None, confidence_tier=None, signal_conflict=None):
+def generate_report(image_filename, verdict, confidence, ela_results, metadata_results, heatmap_path=None, ela_image_path=None, output_path=None, confidence_tier=None, signal_conflict=None, video_note=None):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     case_id = datetime.now().strftime("DT-%Y%m%d-%H%M%S")
     verdict_color = "#2ecc71" if verdict == "REAL" else ("#f0c040" if verdict == "INCONCLUSIVE" else "#e74c3c")
@@ -56,6 +56,7 @@ td:first-child{{color:#e0e0f0;}}
   <div class="bar"><div class="bar-fill"></div></div>
   {tier_note}
   {conflict_html}
+  {f'<p style="color:#8ab4f8;margin-top:.6rem;font-size:.85rem;">🎞 {video_note}</p>' if video_note else ''}
   <p style="color:#888;margin-top:.8rem;">File: {image_filename} | Case: {case_id} | {timestamp}</p>
 </div>
 <div class="card">

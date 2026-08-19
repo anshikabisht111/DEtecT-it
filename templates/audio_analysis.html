@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}DEtecT-it — Audio Analysis{% endblock %}
+{% block content %}
+
+<div class="hero">
+  <h1 class="hero-title">DEtecT<span class="accent">-it</span></h1>
+  <p class="hero-sub">Upload an audio clip — voice spoof / clone detection via AASIST-L</p>
+</div>
+
+<div class="upload-card">
+  {% if error %}
+  <p style="color:#f0a0a0;background:#2a1414;border:1px solid #7a2828;border-radius:8px;padding:.7rem 1rem;margin-bottom:1rem;font-size:.85rem;">
+    {{ error }}
+  </p>
+  {% endif %}
+
+  <form action="/analyze-audio" method="POST" enctype="multipart/form-data">
+    <div class="drop-zone">
+      <div class="drop-icon">🎙</div>
+      <p class="drop-text">Drop an audio file here, or click to browse</p>
+      <p class="drop-sub">WAV, MP3, FLAC, M4A, OGG</p>
+      <input type="file" name="file" accept=".wav,.mp3,.flac,.m4a,.ogg" required
+             style="margin-top:1rem;color:#ccc;"/>
+      <br/>
+      <button type="submit" class="analyze-btn" style="margin-top:1rem;">Analyze Audio</button>
+    </div>
+  </form>
+</div>
+
+<div class="features-row">
+  <div class="feature-card">
+    <div class="feat-icon">🧠</div>
+    <div class="feat-title">AASIST-L</div>
+    <div class="feat-sub">Graph attention network, ASVspoof2019 LA (EER 0.99%)</div>
+  </div>
+  <div class="feature-card">
+    <div class="feat-icon">🎧</div>
+    <div class="feat-title">Voice spoof detection</div>
+    <div class="feat-sub">Flags synthetic / cloned / replayed speech</div>
+  </div>
+  <div class="feature-card">
+    <div class="feat-icon">⚖️</div>
+    <div class="feat-title">Confidence-tiered</div>
+    <div class="feat-sub">Same REAL/DEEPFAKE/INCONCLUSIVE system</div>
+  </div>
+</div>
+
+<p style="color:#888;font-size:.75rem;max-width:520px;margin:1rem auto;text-align:center;">
+  ⚠ Trained on ASVspoof2019 — text-to-speech and voice-conversion attacks. May not
+  generalize equally well to every modern voice-cloning tool, consistent with the
+  same cross-dataset generalization limitation noted for the image detector.
+</p>
+
+{% endblock %}

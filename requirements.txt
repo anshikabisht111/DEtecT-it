@@ -12,3 +12,5 @@ requests
 beautifulsoup4
 python-whois
 validators
+librosa
+soundfile
